@@ -7,17 +7,11 @@ import java.util.Scanner;
 public class Field {
     private final int rowCount;
     private final int columnCount;
+    private int movesLeft;
 
     private final Tile[][] field;
 
     private GameState state = GameState.PLAYING;
-
-    public Field(int xCount, int yCount){
-        this.columnCount = yCount;
-        this.rowCount = xCount;
-
-        this.field = new Tile[xCount][yCount];
-    }
 
     public Field(String path){
         File level = new File(path);
@@ -29,6 +23,7 @@ public class Field {
         }
             rowCount = sc.nextInt();
             columnCount = sc.nextInt();
+            movesLeft = sc.nextInt();
             this.field = new Tile[rowCount][columnCount];
             for (int i = 0; i < rowCount; i++) {
                 for (int j = 0; j < columnCount; j++) {
@@ -39,75 +34,20 @@ public class Field {
 
     }
 
-    public void randomField(){
-        int randomType;
-        int x = 0;
-        int y = 0;
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++) {
-                field[i][j] = new Tile();
-            }
-        }
-        do {
-            randomType = (int )(Math. random() * 11 + 1);
-            field[0][0].setState(getPipe(randomType));
-        }while (randomType == 4);
-        while (true){
-            int dr = (int) (Math.random()*2 + 1);
-            int rn = (int)(Math. random() * 11 + 1);
-            if (rn == 4)
-                continue;
-            switch (dr){
-                case 1:
-                    if (!onRightBorder(x,y) && isConnecting(field[x][y].getState(), getPipe(rn), Direction.RIGHT) && canGoDown(getPipe(rn)) && canGoRight(getPipe(rn))){
-                        y++;
-                        field[x][y].setState(getPipe(rn));
-                    }else {
-                        continue;
-                    }
-                    break;
-                case 2:
-                    if (!onBottomBorder(x,y) && isConnecting(field[x][y].getState(), getPipe(rn), Direction.DOWN) && canGoDown(getPipe(rn)) && canGoRight(getPipe(rn))){
-                        x++;
-                        field[x][y].setState(getPipe(rn));
-                    }else
-                        continue;
-                    break;
-                default:
-                        continue;
-            }
-            if (x == rowCount-1 && y == columnCount-1)
-                break;
-        }
-        for (int i = 0; i < rowCount; i++){
-            for (int j = 0; j < columnCount; j++){
-                int rn = (int)(Math. random() * 11 + 1);
-                if (field[i][j] == null)
-                    field[i][j].setState(getPipe(rn));
-            }
-        }
-    }
-
     public boolean isSolved(){
         resetWater();
-        if (field[0][0].getState() != PipeState.SIMPLE && field[0][0].getState() != PipeState.TWISTED && field[0][0].getState() != PipeState.TWISTED3 && field[0][0].getState() != PipeState.THREEPLE){
-            field[0][0].setHaveWater(true);
-        }else {
-            return false;
-        }
+        field[0][0].setHaveWater(true);
         for (int i = 0; i < rowCount; i++){
             for (int j = 0; j < columnCount; j++){
                 if (field[i][j].getHaveWater())
                     addWater(i,j);
             }
         }
-        if (field[rowCount-1][columnCount-1].getState() !=  PipeState.SIMPLE && field[rowCount-1][columnCount-1].getState() !=  PipeState.TWISTED1 && field[rowCount-1][columnCount-1].getState() !=  PipeState.THREEPLE2)
-            return field[rowCount-1][columnCount-1].getHaveWater();
-        else
-            return false;
+        return field[rowCount-1][columnCount-1].getHaveWater();
     }
     public void rotatePipe(int x, int y){
-        field[y-1][x-1].rotate();
+        field[x][y].rotate();
+        decrementMoves();
     }
 
     private boolean onRightBorder(int x, int y){
@@ -140,6 +80,12 @@ public class Field {
 
     private boolean canGoDown(PipeState t){
         return t != PipeState.SIMPLE && t != PipeState.TWISTED1 && t != PipeState.TWISTED2 && t != PipeState.THREEPLE2;
+    }
+
+    private void decrementMoves(){
+        movesLeft--;
+        if (movesLeft ==0)
+            state = GameState.FAILED;
     }
 
     private  boolean isConnecting(PipeState k, PipeState m, Direction direction){
@@ -209,16 +155,6 @@ public class Field {
         }
     }
 
-/*    private Direction getDirections(int i){
-        switch (i){
-            case 1: return Direction.RIGHT;
-            case 2: return Direction.DOWN;
-            default:
-                System.out.println("Error");
-                return Direction.DOWN;
-        }
-    }*/
-
     private void addWater(int x, int y){
         if (canGoRight(field[x][y].getState()) && !onRightBorder(x, y) && isConnecting(field[x][y].getState(), pipeOnRight(x,y).getState(), Direction.RIGHT) && !pipeOnRight(x,y).getHaveWater()){
             pipeOnRight(x,y).setHaveWater(true);
@@ -246,89 +182,14 @@ public class Field {
 
     public int getColumnCount() { return columnCount; }
 
-    public void printField(){
-        for (int i = 0; i < rowCount; i++) {
-            for (int j = 0; j < columnCount; j++) {
-                if (field[i][j].getHaveWater()){
-                    switch (field[i][j].getState()){
-                        case SIMPLE:
-                            System.out.print("= ");
-                            break;
-                        case SIMPLE1:
-                            System.out.print("║ ");
-                            break;
-                        case TWISTED:
-                            System.out.print("╗ ");
-                            break;
-                        case TWISTED1:
-                            System.out.print("╝ ");
-                            break;
-                        case TWISTED2:
-                            System.out.print("╚ ");
-                            break;
-                        case TWISTED3:
-                            System.out.print("╔ ");
-                            break;
-                        case THREEPLE:
-                            System.out.print("╦ ");
-                            break;
-                        case THREEPLE1:
-                            System.out.print("╣ ");
-                            break;
-                        case THREEPLE2:
-                            System.out.print("╩ ");
-                            break;
-                        case THREEPLE3:
-                            System.out.print("╠ ");
-                            break;
-                        case CROSED:
-                            System.out.println("╬ ");
-                            break;
-                    }
-                    continue;
-                }
-                switch (field[i][j].getState()){
-                    case SIMPLE:
-                        System.out.print("− ");
-                        break;
-                    case SIMPLE1:
-                        System.out.print("┃ ");
-                        break;
-                    case TWISTED:
-                        System.out.print("┓ ");
-                        break;
-                    case TWISTED1:
-                        System.out.print("┛ ");
-                        break;
-                    case TWISTED2:
-                        System.out.print("┗ ");
-                        break;
-                    case TWISTED3:
-                        System.out.print("┏ ");
-                        break;
-                    case THREEPLE:
-                        System.out.print("┯ ");
-                        break;
-                    case THREEPLE1:
-                        System.out.print("┫ ");
-                        break;
-                    case THREEPLE2:
-                        System.out.print("┷ ");
-                        break;
-                    case THREEPLE3:
-                        System.out.print("┣ ");
-                        break;
-                    case CROSED:
-                        System.out.println("┼ ");
-                        break;
-                }
-            }
-            System.out.println();
-        }
-    }
     public Tile getTile(int x, int y){
         return field[x][y];
     }
+
     public GameState getState(){return state;}
+
     public void setState(GameState s){this.state = s;}
+    public int getMovesLeft(){ return movesLeft;}
+    public boolean MovesLeft(){return movesLeft != 0;}
+
 }
